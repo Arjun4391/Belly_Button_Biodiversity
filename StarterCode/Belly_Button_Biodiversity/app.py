@@ -30,8 +30,6 @@ Base.prepare(db.engine, reflect=True)
 # Save references to each table
 Samples_Metadata = Base.classes.sample_metadata
 Samples = Base.classes.samples
-OTU = Base.classes.otu
-
 
 @app.route("/")
 def index():
@@ -46,22 +44,10 @@ def names():
     # Use Pandas to perform the sql query
     stmt = db.session.query(Samples).statement
     df = pd.read_sql_query(stmt, db.session.bind)
-    df.set_index('otu_id', inplace=True)
+    
 
     # Return a list of the column names (sample names)
     return jsonify(list(df.columns)[2:])
-
-########################################
-# Returns a list of OTU descriptions 
-########################################
-@app.route('/otu')
-def otu():
-    """Return a list of OTU descriptions."""
-    results = session.query(OTU.lowest_taxonomic_unit_found).all()
-
-    # Use numpy ravel to extract list of tuples into a list of OTU descriptions
-    otu_list = list(np.ravel(results))
-    return jsonify(otu_list)
 
 @app.route("/metadata/<sample>")
 def sample_metadata(sample):
