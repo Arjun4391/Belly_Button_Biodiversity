@@ -1,3 +1,4 @@
+## Dependencies ####
 import os
 
 import pandas as pd
@@ -8,7 +9,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request, flash, redirect
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -29,6 +30,7 @@ Base.prepare(db.engine, reflect=True)
 # Save references to each table
 Samples_Metadata = Base.classes.sample_metadata
 Samples = Base.classes.samples
+OTU = Base.classes.otu
 
 
 @app.route("/")
@@ -44,10 +46,22 @@ def names():
     # Use Pandas to perform the sql query
     stmt = db.session.query(Samples).statement
     df = pd.read_sql_query(stmt, db.session.bind)
+    df.set_index('otu_id', inplace=True)
 
     # Return a list of the column names (sample names)
     return jsonify(list(df.columns)[2:])
 
+########################################
+# Returns a list of OTU descriptions 
+########################################
+@app.route('/otu')
+def otu():
+    """Return a list of OTU descriptions."""
+    results = session.query(OTU.lowest_taxonomic_unit_found).all()
+
+    # Use numpy ravel to extract list of tuples into a list of OTU descriptions
+    otu_list = list(np.ravel(results))
+    return jsonify(otu_list)
 
 @app.route("/metadata/<sample>")
 def sample_metadata(sample):
@@ -78,6 +92,21 @@ def sample_metadata(sample):
     print(sample_metadata)
     return jsonify(sample_metadata)
 
+#################################################
+# Returns an integer value for the weekly washing frequency `WFREQ`
+#################################################
+@app.route('/wfreq/<sample>')
+def sample_wfreq(sample):
+    """Return the Weekly Washing Frequency as a number."""
+
+    # `sample[3:]` strips the `BB_` prefix
+    results = session.query(Samples_Metadata.WFREQ).\
+        filter(Samples_Metadata.SAMPLEID == sample[3:]).all()
+    wfreq = np.ravel(results)
+
+    # Return only the first integer value for washing frequency
+    return jsonify(int(wfreq[0]))
+
 
 @app.route("/samples/<sample>")
 def samples(sample):
@@ -98,4 +127,4 @@ def samples(sample):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
