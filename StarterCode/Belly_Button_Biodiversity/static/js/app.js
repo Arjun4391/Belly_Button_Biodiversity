@@ -27,7 +27,7 @@ function buildCharts(sample) {
   d3.json(`/samples/${sample}`).then((data) => {
     otu_ids = data.otu_ids;
     otu_labels = data.otu_labels;
-    sample_values = sample.sample_values;
+    sample_values = data.sample_values;
 
     // @TODO: Build a Bubble Chart using the sample data
     var bubbleLayout = {
